@@ -2,7 +2,7 @@
 
 #define Pinky_Pin     A0
 #define Ring_Pin      A1
-#define MIddle_Pin    A2
+#define Middle_Pin    A2
 #define Index_Pin     A3
 #define Thumb_Pin     A4
 #define PIN_CALIB     13 
@@ -10,7 +10,7 @@
 #define PIN_MENU_BTN        8
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------
-// Defing Functions
+// Defining Functions
 
 #define ANALOG_MAX 1023
 #define CALIBRATION_LOOPS -1
@@ -119,7 +119,7 @@ void loop() {
      }
     
 
-    delay(5000);
+    delay(5);
   }
 }
 
@@ -177,13 +177,13 @@ void setupInputs(){
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fingor posiotion
+// Finger position
 
 int* getFingerPositions(bool calibrating, bool reset){
   int rawFingers[5] = {     // Read Finger Positions
       analogRead(Thumb_Pin), 
       analogRead(Index_Pin), 
-      analogRead(MIddle_Pin), 
+      analogRead(Middle_Pin), 
       analogRead(Ring_Pin), 
       analogRead(Pinky_Pin)
     };
@@ -204,7 +204,6 @@ int* getFingerPositions(bool calibrating, bool reset){
     }
   }
   
-  //if during the calibration sequence, make sure to update max and mins
   if (calibrating){
     for (int i = 0; i <5; i++){
       if (rawFingers[i] > maxFingers[i])
@@ -250,7 +249,7 @@ bool getButton(byte pin){
 // Gestures
 
 bool grabGesture(int *flexion){
-  return (flexion[Pinky_Pin] + flexion[Ring_Pin] + flexion[MIddle_Pin] + flexion[Index_Pin]) / 4 <= ANALOG_MAX/2 ? 0:1;
+  return (flexion[Pinky_Pin] + flexion[Ring_Pin] + flexion[Middle_Pin] + flexion[Index_Pin]) / 4 <= ANALOG_MAX/2 ? 0:1;
 }
 
 bool pinchGesture(int *flexion){
@@ -273,27 +272,16 @@ void setupHaptics(){
   }
 }
 
-//static scaling, maps to entire range of servo
-void scaleLimits(int* hapticLimits, float* scaledLimits){
-  for (int i = 0; i < 5; i++){
-    scaledLimits[i] = 180.0f - hapticLimits[i] / 1000.0f * 180.0f;
-  }
-}
 
 void writeHaptics(int* hapticLimits){
-  float scaledLimits[5];
-  scaleLimits(hapticLimits, scaledLimits);
+  int tolerance = 50;  // Tolerance for matching the limit
   for (int i = 0; i < 5; i++) {
     int potValue = fingerPos[i];
 
-    // Check if the finger reaches the limit and if there was a change in position
-    if (abs(potValue - prevPotValues[i]) > 10) {  // Change detected
-      prevPotValues[i] = potValue;  // Update previous value
-
-      if (potValue >= scaledLimits[i]) {
+    if (potValue >= hapticLimits[i] - tolerance && potValue <= hapticLimits[i] + tolerance) {
         digitalWrite(eleMagPins[i], HIGH);  // Turn on electromagnet
-        digitalWrite(eleMagPins[i], LOW);   // Turn off electromagnet
-      }
+        delay(100);  // Keep it on for 0.1 second
+        digitalWrite(eleMagPins[i], LOW);   // Turn off electromagnet    }
     }
   }
 }
